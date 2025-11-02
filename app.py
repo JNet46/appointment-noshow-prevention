@@ -25,29 +25,33 @@ with st.sidebar:
 # --- Core Logic ---
 if uploaded_file is not None:
     try:
-        # Load data
-        appointment_data = pd.read_csv(uploaded_file)
+        # Load the raw data from the user's upload
+        raw_data = pd.read_csv(uploaded_file)
         st.success("File uploaded successfully!")
         
-        # Display raw data (optional)
-        if st.checkbox("Show raw appointment data"):
-            st.write(appointment_data.head())
+        if st.checkbox("Show raw uploaded data"):
+            st.write(raw_data.head())
 
-        # Create components
-        predictor = NoShowPredictor()
-        
         # --- Prediction Step ---
-        with st.spinner('Running predictions...'):
-            # NOTE: For this to work, your CSV must have the columns your model expects!
-            # You will need to add data cleaning/feature engineering here.
-            predictions_df = predictor.predict_batch(appointment_data)
+        with st.spinner('Running predictions... This may take a moment.'):
+            # Create an instance of our predictor
+            predictor = NoShowPredictor()
+            
+            # The predictor will handle its own preprocessing internally now
+            predictions_df = predictor.predict_batch(raw_data)
+        
         st.success('Predictions complete!')
         
-        analyzer = DataAnalyzer(predictions_df)
-        
+        # --- Combine Original Data with Predictions for Analysis ---
+        # This joins the original details with the new prediction columns
+        full_results_df = pd.concat([raw_data.reset_index(drop=True), predictions_df], axis=1)
+
         # --- Dashboard Display ---
         st.header("Prediction Dashboard")
         
+        # Pass the complete results to the analyzer
+        analyzer = DataAnalyzer(full_results_df)
+
         # 1. Summary Metrics
         stats = analyzer.get_summary_statistics()
         col1, col2, col3 = st.columns(3)
@@ -63,7 +67,7 @@ if uploaded_file is not None:
         high_risk_report = analyzer.get_high_risk_report()
         st.dataframe(high_risk_report)
         
-        # Add a download button for the report
+        # Download button
         st.download_button(
            label="Download High-Risk Report as CSV",
            data=high_risk_report.to_csv(index=False).encode('utf-8'),

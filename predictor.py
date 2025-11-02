@@ -25,30 +25,47 @@ class NoShowPredictor:
             return None
 
     def predict_batch(self, features_df: pd.DataFrame) -> pd.DataFrame:
+
         """
         Makes predictions on a batch of appointments (a DataFrame).
         """
+
         if self.model is None:
-            # Return a dummy response if the model isn't loaded
-            result_df = features_df.copy()
-            result_df['risk_score'] = 0.5
-            result_df['risk_level'] = 'Medium'
-            result_df['predicted_outcome'] = 0
-            return result_df
+        # This is an important check to ensure the model loaded correctly.
+            raise FileNotFoundError("Model file not found or failed to load.")
+    
+    # --- 1. Preprocess the incoming data ---
+    # This must be IDENTICAL to the preprocessing in your notebook.
+    
+    # Example: Convert gender to numeric format
+        df_processed = features_df.copy()
+        if 'gender' in df_processed.columns:
+            df_processed['gender_encoded'] = df_processed['gender'].map({'M': 1, 'F': 0})
+    
+    # --- 2. Select the final feature columns ---
+    # The model expects the columns in a specific order. Get it from the model itself.
+    # This makes your code robust even if you retrain the model with different features.
+        model_features = self.model.feature_names_in_
+    
+    # Make sure all required columns are present
+        for col in model_features:
+            if col not in df_processed.columns:
+                raise ValueError(f"Missing required column: {col}")
             
-        # --- THIS IS WHERE YOUR REAL PREDICTION LOGIC WILL GO ---
-        # 1. Ensure columns are in the correct order for the model
-        # 2. Make predictions
-        # 3. Calculate risk levels
-        # For now, we'll return the dummy response.
-        
-        predictions = self.model.predict_proba(features_df)[:, 1] # Probability of class 1 (No-Show)
-        
-        result_df = features_df.copy()
-        result_df['risk_score'] = predictions
+    # Select and reorder columns to match the model's expectation
+        data_for_prediction = df_processed[model_features]
+
+    # --- 3. Make predictions ---
+    # Use predict_proba to get the probability of a "no-show" (class 1)
+        probabilities = self.model.predict_proba(data_for_prediction)[:, 1]
+    
+    # --- 4. Format the output ---
+    # Create a new DataFrame with the results
+        result_df = pd.DataFrame()
+        result_df['risk_score'] = probabilities
         result_df['risk_level'] = result_df['risk_score'].apply(self.calculate_risk_level)
         result_df['predicted_outcome'] = (result_df['risk_score'] >= 0.5).astype(int)
-        
+    
         return result_df
 
     def calculate_risk_level(self, probability):

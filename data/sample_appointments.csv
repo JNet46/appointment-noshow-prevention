@@ -1,0 +1,11 @@
+appointment_id,age,gender,scholarship,hypertension,diabetes,sms_received,days_between,no_show
+APT001,35,M,0,1,0,1,14,0
+APT002,22,F,1,0,0,1,5,1
+APT003,68,F,0,1,1,0,2,0
+APT004,19,M,0,0,0,1,25,1
+APT005,45,F,0,0,0,0,8,0
+APT006,58,M,0,1,0,1,3,0
+APT007,29,F,0,0,0,1,10,0
+APT008,7,M,0,0,0,0,1,0
+APT009,42,F,1,0,1,1,22,1
+APT010,51,M,0,0,0,1,6,0
